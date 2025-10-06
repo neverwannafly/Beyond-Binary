@@ -1,54 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FadeInView } from '@/components/animations/FadeInView';
 import { 
-  Instagram, 
   ExternalLink, 
-  MapPin,
-  Timer,
-  Mountain,
-  Activity,
-  Target,
-  Zap,
   ChevronLeft,
   ChevronRight,
-  GitBranch
+  Pause,
+  Play
 } from 'lucide-react';
-import { fetchAllLiveData, type InstagramPost, type ChessGame, type StravaActivity, type GitHubStats } from '@/services/realDataService';
+import { fetchAllLiveData, type GitHubStats, type ChessStats } from '@/services/realDataService';
+import { ChessStatsCard } from './ChessStatsCard';
+import { GitHubStatsCard } from './GitHubStatsCard';
 
 interface FeedData {
   id: string;
   title: string;
-  icon: React.ReactNode;
+  icon: string;
   badge: string;
-  color: string;
   data: any;
-  type: 'instagram' | 'chess' | 'strava' | 'github';
+  type: 'chess' | 'github';
+  gradient: string;
+  link: string;
 }
 
 const StackedLiveFeeds: React.FC = () => {
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
   const [liveData, setLiveData] = useState<{
     github: GitHubStats | null;
-    chess: ChessGame[];
-    strava: StravaActivity[];
-    instagram: InstagramPost[];
+    chess: ChessStats | null;
   }>({
     github: null,
-    chess: [],
-    strava: [],
-    instagram: []
+    chess: null
   });
   const [loading, setLoading] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [direction, setDirection] = useState(0);
+
+  // Auto-rotation timer
+  useEffect(() => {
+    if (!autoRotate) return;
+    
+    const timer = setInterval(() => {
+      nextFeed();
+    }, 8000);
+
+    return () => clearInterval(timer);
+  }, [autoRotate, currentFeedIndex]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const data = await fetchAllLiveData();
-        setLiveData(data);
+        setLiveData({
+          github: data.github,
+          chess: data.chess
+        });
       } catch (error) {
         console.error('Failed to load live data:', error);
       } finally {
@@ -61,97 +70,50 @@ const StackedLiveFeeds: React.FC = () => {
 
   const feeds: FeedData[] = [
     {
-      id: 'instagram',
-      title: 'Latest Adventures',
-      icon: <Instagram className="text-pink-500" size={24} />,
-      badge: '@alwayswannaly',
-      color: 'from-pink-500 to-purple-600',
-      data: liveData.instagram,
-      type: 'instagram'
-    },
-    {
       id: 'chess',
-      title: 'Recent Chess Games',
-      icon: <span className="text-2xl">♟️</span>,
-      badge: '1842 ELO',
-      color: 'from-amber-500 to-orange-600',
+      title: 'Chess Performance',
+      icon: '♟️',
+      badge: liveData.chess ? `${liveData.chess.currentRating} ELO` : 'Chess',
       data: liveData.chess,
-      type: 'chess'
-    },
-    {
-      id: 'strava',
-      title: 'Outdoor Activities',
-      icon: <Zap className="text-orange-500" size={24} />,
-      badge: 'Strava',
-      color: 'from-orange-500 to-red-600',
-      data: liveData.strava,
-      type: 'strava'
+      type: 'chess',
+      gradient: 'from-amber-500/20 via-orange-500/20 to-red-500/20',
+      link: 'https://chess.com/member/alwayswannaly'
     },
     {
       id: 'github',
       title: 'Code Contributions',
-      icon: <GitBranch className="text-gray-700 dark:text-gray-300" size={24} />,
+      icon: '💻',
       badge: 'neverwannafly',
-      color: 'from-gray-600 to-gray-800',
       data: liveData.github,
-      type: 'github'
+      type: 'github',
+      gradient: 'from-blue-500/20 via-purple-500/20 to-pink-500/20',
+      link: 'https://github.com/neverwannafly'
     }
   ];
 
   const nextFeed = () => {
+    setDirection(1);
     setCurrentFeedIndex((prev) => (prev + 1) % feeds.length);
   };
 
   const prevFeed = () => {
+    setDirection(-1);
     setCurrentFeedIndex((prev) => (prev - 1 + feeds.length) % feeds.length);
   };
 
   const currentFeed = feeds[currentFeedIndex];
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const formatDistance = (meters: number) => {
-    if (meters < 1000) return `${meters}m`;
-    return `${(meters / 1000).toFixed(1)}km`;
-  };
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
-
-  const getActivityIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'rock climbing':
-      case 'climbing':
-        return <Mountain className="text-orange-500" size={16} />;
-      case 'kayaking':
-        return <Activity className="text-blue-500" size={16} />;
-      case 'hiking':
-        return <Mountain className="text-green-500" size={16} />;
-      default:
-        return <Activity className="text-primary" size={16} />;
-    }
-  };
-
   const renderFeedContent = () => {
     if (loading) {
       return (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+        <div className="space-y-4 p-6">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="animate-pulse">
               <div className="flex space-x-3">
-                <div className="w-16 h-16 bg-secondary rounded-lg" />
+                <div className="w-16 h-16 bg-muted/30 rounded-lg" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-secondary rounded w-3/4" />
-                  <div className="h-3 bg-secondary rounded w-1/2" />
+                  <div className="h-4 bg-muted/30 rounded w-3/4" />
+                  <div className="h-3 bg-muted/30 rounded w-1/2" />
                 </div>
               </div>
             </div>
@@ -161,155 +123,23 @@ const StackedLiveFeeds: React.FC = () => {
     }
 
     switch (currentFeed.type) {
-      case 'instagram':
-        return (
-          <div className="space-y-4">
-            {(currentFeed.data as InstagramPost[]).slice(0, 3).map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="group"
-              >
-                <div className="flex space-x-3">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={post.media_url}
-                      alt="Instagram post"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                      {post.caption}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(post.timestamp)}
-                      </span>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={post.permalink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink size={14} />
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        );
-
       case 'chess':
-        return (
-          <div className="space-y-4">
-            {(currentFeed.data as ChessGame[]).slice(0, 3).map((game, index) => {
-              const isWhite = game.white.username === 'alwayswannaly';
-              const myRating = isWhite ? game.white.rating : game.black.rating;
-              const opponentRating = isWhite ? game.black.rating : game.white.rating;
-              const opponentName = isWhite ? game.black.username : game.white.username;
-              
-              let result = 'Draw';
-              if (game.result === '1-0') result = isWhite ? 'Won' : 'Lost';
-              if (game.result === '0-1') result = isWhite ? 'Lost' : 'Won';
-              
-              const resultColor = result === 'Won' ? 'text-green-500' : result === 'Lost' ? 'text-red-500' : 'text-yellow-500';
-              
-              return (
-                <motion.div
-                  key={game.game_id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="p-3 border rounded-lg hover:bg-secondary/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${isWhite ? 'bg-white border' : 'bg-black'}`} />
-                      <span className="font-medium">vs {opponentName}</span>
-                    </div>
-                    <span className={`font-bold ${resultColor}`}>
-                      {result}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{Math.floor(parseInt(game.time_control) / 60)} min</span>
-                    <span>{myRating} vs {opponentRating}</span>
-                    <Button variant="ghost" size="sm" asChild>
-                      <a href={game.url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink size={14} />
-                      </a>
-                    </Button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        );
-
-      case 'strava':
-        return (
-          <div className="space-y-4">
-            {(currentFeed.data as StravaActivity[]).slice(0, 3).map((activity, index) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-3 border rounded-lg hover:bg-secondary/50 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    {getActivityIcon(activity.type)}
-                    <span className="font-medium text-sm">{activity.name}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <Target size={12} />
-                    <span>{formatDistance(activity.distance)}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Timer size={12} />
-                    <span>{formatDuration(activity.moving_time)}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Mountain size={12} />
-                    <span>{activity.elevation_gain}m</span>
-                  </div>
-                </div>
-                {activity.location_city && (
-                  <div className="flex items-center space-x-1 mt-2 text-xs text-muted-foreground">
-                    <MapPin size={12} />
-                    <span>{activity.location_city}, {activity.location_state}</span>
-                  </div>
-                )}
-              </motion.div>
-            ))}
+        const chessStats = currentFeed.data as ChessStats;
+        return chessStats ? (
+          <ChessStatsCard stats={chessStats} />
+        ) : (
+          <div className="text-center text-muted-foreground py-12">
+            No chess data available
           </div>
         );
 
       case 'github':
-        const github = currentFeed.data as GitHubStats;
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 border rounded-lg">
-                <div className="text-2xl font-bold text-primary">{github?.publicRepos || 0}</div>
-                <div className="text-xs text-muted-foreground">Public Repos</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg">
-                <div className="text-2xl font-bold text-primary">{github?.totalCommits || 0}</div>
-                <div className="text-xs text-muted-foreground">Total Commits</div>
-              </div>
-            </div>
-            <div className="p-3 border rounded-lg">
-              <div className="text-sm font-medium mb-2">Recent Activity</div>
-              <div className="text-xs text-muted-foreground">
-                Active on GitHub with consistent contributions. Check the full heatmap below!
-              </div>
-            </div>
+        const githubStats = currentFeed.data as GitHubStats;
+        return githubStats ? (
+          <GitHubStatsCard stats={githubStats} />
+        ) : (
+          <div className="text-center text-muted-foreground py-12">
+            No GitHub data available
           </div>
         );
 
@@ -318,127 +148,225 @@ const StackedLiveFeeds: React.FC = () => {
     }
   };
 
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.9,
+      rotateY: direction > 0 ? 45 : -45
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      scale: 1,
+      rotateY: 0,
+      zIndex: 10
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.9,
+      rotateY: direction < 0 ? 45 : -45,
+      zIndex: 0
+    })
+  };
+
   return (
-    <section className="py-20 bg-secondary/30">
-      <div className="container mx-auto px-4">
-        <FadeInView className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">Live from the Adventure</h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Real-time updates from my digital and physical adventures
-          </p>
+    <section className="py-12 sm:py-20 relative overflow-hidden">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/5 to-background" />
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <FadeInView className="text-center mb-8 sm:mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              Live Performance
+            </h2>
+            <p className="text-base sm:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
+              Real-time stats from my coding and chess adventures
+            </p>
+          </motion.div>
         </FadeInView>
         
-        <div className="max-w-2xl mx-auto">
-          <div className="relative">
-            {/* Background Cards (Stack Effect) */}
-            <div className="absolute inset-0">
-              {feeds.map((_, index) => {
-                const offset = Math.abs(index - currentFeedIndex);
-                if (offset > 2) return null;
+        <div className="max-w-4xl mx-auto">
+          <div className="relative perspective-1000" style={{ perspective: '1500px' }}>
+            {/* Background Stacked Cards - 3D Effect - Hidden on mobile */}
+            <div className="absolute inset-0 pointer-events-none hidden sm:block">
+              {feeds.map((feed, index) => {
+                if (index === currentFeedIndex) return null;
+                
+                const offset = index < currentFeedIndex ? -1 : 1;
+                const distance = Math.abs(index - currentFeedIndex);
                 
                 return (
-                  <div
-                    key={index}
-                    className="absolute inset-0 bg-card border rounded-xl shadow-lg"
+                  <motion.div
+                    key={feed.id}
+                    className={`absolute inset-0 rounded-2xl border border-border/20 backdrop-blur-xl bg-gradient-to-br ${feed.gradient}`}
+                    initial={false}
+                    animate={{
+                      y: distance * 20,
+                      scale: 1 - distance * 0.05,
+                      opacity: 0.4 - distance * 0.2,
+                      rotateX: offset * 5,
+                      z: -distance * 100,
+                    }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 300, 
+                      damping: 30 
+                    }}
                     style={{
-                      transform: `translateY(${offset * 4}px) scale(${1 - offset * 0.02})`,
-                      opacity: 1 - offset * 0.2,
-                      zIndex: 10 - offset
+                      transformStyle: 'preserve-3d',
                     }}
                   />
                 );
               })}
             </div>
 
-            {/* Main Card */}
-            <Card className="relative z-20 min-h-[500px]">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg bg-gradient-to-r ${currentFeed.color}`}>
-                      <div className="text-white">
+            {/* Main Active Card */}
+            <div className="relative" style={{ transformStyle: 'preserve-3d' }}>
+              <Card className="relative overflow-hidden border border-border/50 sm:border-2 backdrop-blur-xl bg-card/95 shadow-xl sm:shadow-2xl">
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${currentFeed.gradient} opacity-50 mix-blend-overlay`} />
+                
+                {/* Header */}
+                <div className="relative border-b border-border/50 bg-card/50 backdrop-blur-sm">
+                  <div className="flex items-center justify-between p-4 sm:p-6 gap-2">
+                    <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+                      <motion.div 
+                        className="text-2xl sm:text-4xl shrink-0"
+                        animate={{ 
+                          rotate: [0, 10, -10, 0],
+                          scale: [1, 1.1, 1.1, 1]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          repeat: Infinity,
+                          repeatDelay: 3
+                        }}
+                      >
                         {currentFeed.icon}
+                      </motion.div>
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-xl font-bold text-foreground truncate">
+                          {currentFeed.title}
+                        </h3>
+                        <Badge variant="outline" className="mt-1 border-primary/30 text-xs sm:text-sm">
+                          {currentFeed.badge}
+                        </Badge>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-lg">{currentFeed.title}</div>
-                      <Badge variant="outline" className="mt-1">
-                        {currentFeed.badge}
-                      </Badge>
+                    
+                    {/* Controls */}
+                    <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAutoRotate(!autoRotate)}
+                        className="w-8 h-8 sm:w-9 sm:h-9 p-0"
+                        title={autoRotate ? 'Pause' : 'Play'}
+                      >
+                        {autoRotate ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
+                      </Button>
+                      
+                      <div className="h-4 sm:h-6 w-px bg-border" />
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={prevFeed}
+                        className="w-8 h-8 sm:w-9 sm:h-9 p-0"
+                      >
+                        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                      
+                      <div className="text-xs sm:text-sm text-muted-foreground font-mono px-1 sm:px-2">
+                        {currentFeedIndex + 1}/{feeds.length}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={nextFeed}
+                        className="w-8 h-8 sm:w-9 sm:h-9 p-0"
+                      >
+                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
                     </div>
-                  </CardTitle>
-                  
-                  {/* Navigation */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={prevFeed}
-                      className="w-8 h-8 p-0"
-                    >
-                      <ChevronLeft size={16} />
-                    </Button>
-                    <div className="text-sm text-muted-foreground px-2">
-                      {currentFeedIndex + 1} / {feeds.length}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={nextFeed}
-                      className="w-8 h-8 p-0"
-                    >
-                      <ChevronRight size={16} />
-                    </Button>
                   </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentFeedIndex}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {renderFeedContent()}
-                  </motion.div>
-                </AnimatePresence>
                 
-                {/* External Link */}
-                <div className="mt-6 pt-4 border-t">
-                  <Button variant="outline" className="w-full" asChild>
+                {/* Content */}
+                <div className="relative min-h-[500px] sm:min-h-[600px]">
+                  <AnimatePresence mode="wait" custom={direction} initial={false}>
+                    <motion.div
+                      key={currentFeedIndex}
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.3 },
+                        scale: { duration: 0.3 },
+                        rotateY: { duration: 0.4 }
+                      }}
+                      style={{ transformStyle: 'preserve-3d' }}
+                    >
+                      {renderFeedContent()}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+
+                {/* Footer */}
+                <div className="relative border-t border-border/50 p-4 sm:p-6 bg-card/50 backdrop-blur-sm">
+                  <Button 
+                    variant="outline" 
+                    className="w-full group hover:bg-primary hover:text-primary-foreground transition-all text-sm sm:text-base" 
+                    asChild
+                  >
                     <a 
-                      href={
-                        currentFeed.type === 'instagram' ? 'https://instagram.com/alwayswannaly' :
-                        currentFeed.type === 'chess' ? 'https://chess.com/member/alwayswannaly' :
-                        currentFeed.type === 'strava' ? 'https://strava.com/athletes/alwayswannaly' :
-                        'https://github.com/neverwannafly'
-                      } 
+                      href={currentFeed.link} 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
-                      View Full Profile
-                      <ExternalLink size={16} className="ml-2" />
+                      <span>View Full Profile</span>
+                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     </a>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </Card>
+            </div>
 
             {/* Dot Indicators */}
-            <div className="flex justify-center space-x-2 mt-6">
-              {feeds.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentFeedIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
+            <div className="flex justify-center space-x-2 sm:space-x-3 mt-6 sm:mt-8">
+              {feeds.map((feed, index) => (
+                <motion.button
+                  key={feed.id}
+                  onClick={() => {
+                    setDirection(index > currentFeedIndex ? 1 : -1);
+                    setCurrentFeedIndex(index);
+                  }}
+                  className="relative group"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <div className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
                     index === currentFeedIndex 
-                      ? 'bg-primary w-6' 
-                      : 'bg-secondary hover:bg-secondary/80'
-                  }`}
-                />
+                      ? 'w-8 sm:w-12 bg-primary' 
+                      : 'w-1.5 sm:w-2 bg-muted-foreground/30 group-hover:bg-muted-foreground/60'
+                  }`} />
+                  
+                  {/* Tooltip - hidden on mobile */}
+                  <div className="hidden sm:block absolute -top-8 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-border shadow-lg">
+                    {feed.title}
+                  </div>
+                </motion.button>
               ))}
             </div>
           </div>

@@ -1,7 +1,4 @@
 import { motion } from 'framer-motion';
-import { PersonalStory } from './PersonalStory';
-import { InterestCards } from './InterestCards';
-import { StatsDisplay } from './StatsDisplay';
 import { FadeInView } from '@/components/animations/FadeInView';
 
 export const AboutSection = () => {
@@ -32,8 +29,6 @@ export const AboutSection = () => {
             </motion.p>
           </FadeInView>
 
-          {/* Personal Story */}
-          <PersonalStory />
 
           {/* Stats Display */}
           <div>
@@ -43,7 +38,6 @@ export const AboutSection = () => {
                 Some fun facts about my journey so far
               </p>
             </FadeInView>
-            <StatsDisplay />
           </div>
 
           {/* Interests */}
@@ -54,7 +48,6 @@ export const AboutSection = () => {
                 My diverse interests shape how I approach problems and find creative solutions
               </p>
             </FadeInView>
-            <InterestCards />
           </div>
         </div>
       </div>

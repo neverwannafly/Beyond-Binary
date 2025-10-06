@@ -15,44 +15,29 @@ import {
   Calendar
 } from 'lucide-react';
 
+import kayakingKodencherry from '@/assets/kayaking_kodencherry.jpg';
+import trekkingRupinPass from '@/assets/trekking_rupin_pass.jpg';
+
 // Placeholder hero images - replace with actual photos
 const heroImages = [
   {
     id: 1,
-    url: '/api/placeholder/800/600',
-    alt: 'Rock climbing in Colorado',
-    title: 'Conquering Crags',
-    location: 'Boulder, CO',
-    date: '2024',
-    activity: 'climbing'
-  },
-  {
-    id: 2,
-    url: '/api/placeholder/800/600',
-    alt: 'Kayaking adventure',
-    title: 'River Rapids',
-    location: 'Arkansas River, CO',
-    date: '2024',
+    url: kayakingKodencherry,
+    alt: 'Kayaking in Kerala',
+    title: 'Kayaking in Kodencherry',
+    location: 'Kodencherry, Kerala',
+    date: '2025',
     activity: 'kayaking'
   },
   {
-    id: 3,
-    url: '/api/placeholder/800/600',
-    alt: 'Coding setup with mountain view',
-    title: 'Code with a View',
-    location: 'Home Office, CO',
-    date: '2024',
-    activity: 'coding'
-  },
-  {
-    id: 4,
-    url: '/api/placeholder/800/600',
-    alt: 'Hiking mountain trail',
+    id: 2,
+    url: trekkingRupinPass,
+    alt: 'Summit Seeker',
     title: 'Summit Seeker',
-    location: 'Rocky Mountain National Park',
-    date: '2024',
-    activity: 'hiking'
-  }
+    location: 'Rupin Pass, Himachal Pradesh',
+    date: '2025',
+    activity: 'trekking'
+  },
 ];
 
 const personalStory = {
@@ -110,7 +95,7 @@ export const VisualAboutSection: React.FC = () => {
             <div className="relative">
               {/* Main Photo Display */}
               <Card className="relative overflow-hidden group cursor-pointer" onClick={() => setIsPlaying(!isPlaying)}>
-                <div className="aspect-[4/3] relative">
+                <div className="aspect-[4/3] relative bg-black">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={currentImageIndex}
@@ -123,7 +108,7 @@ export const VisualAboutSection: React.FC = () => {
                       <img
                         src={currentImage.url}
                         alt={currentImage.alt}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                       
                       {/* Overlay with info */}
