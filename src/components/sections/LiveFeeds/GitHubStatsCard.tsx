@@ -10,17 +10,6 @@ interface GitHubStatsCardProps {
 
 export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({ stats }) => {
   // Get contribution level color - theme aware
-  const getContributionColor = (level: number) => {
-    switch (level) {
-      case 0: return 'bg-muted/20';
-      case 1: return 'bg-green-900/40';
-      case 2: return 'bg-green-700/60';
-      case 3: return 'bg-green-500/70';
-      case 4: return 'bg-green-400/90';
-      default: return 'bg-muted/20';
-    }
-  };
-
   function getLanguageColor(language: string): string {
     const colors: { [key: string]: string } = {
       TypeScript: 'hsl(211, 60%, 50%)',
